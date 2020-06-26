@@ -1,0 +1,165 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created with wxMaxima version 18.02.0 ] */
+/* [wxMaxima: comment start ]
+Wright-Fisher matrix
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+wfmat (n) := genmatrix(lambda([j,k], 
+    binomial(n,j) * (k/n)^j * (1-k/n)^(n-j)), 
+    n-1, n-1, 1, 1)$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Normalized Gaussian
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+ncgvec (sigma,n) := makelist(
+    1/(sigma*sqrt(2*%pi)) * %e^(-(k/n-1/2)^2/(2*sigma^2)),
+    k,  1,  n-1);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Normalized Gaussian centered at 0.5 with variance 0.15
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+wxplot2d([discrete, ncgvec(0.15,25)]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+According to the formula on page 4, applying Wright-Fisher should correspond to convoluting with a Gaussian of variance 1/sqrt(4n).  For n=25, that is a variance of 0.1  If we take with a Gaussian of variance 0.15 as plotted above and then convolute with a Gaussian of variance 0.1 we obtain a Gaussian of variance sqrt(0.15^2 + 0.1^2) = 0.18  We compare this with the result of applying the Wright-Fisher matrix to the Gaussian of variance 0.15  Tey agree quite well.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+wxplot2d([[discrete, list_matrix_entries(wfmat(25) . ncgvec(0.15,25))],
+[discrete, ncgvec(0.18,25)]], [legend, "Wright-Fisher", "Gaussian convolution"]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Now let's go through the exercise of putting in a Gaussian fitness landscape and computing the stationary distribution and mean fitness.   To begin, we need diagonal fitness matrix.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Gfitmat (sigma,n) := apply(diag_matrix, ncgvec(sigma,n))$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+We also recall our routine for Perron-Frobenius iteration.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+maxeigen(mat) :=
+block ([n, last, evec, norm, tol],
+    n : matrix_size(mat)[1],
+    tol : 0.001,    
+    last : apply (matrix, makelist([0.0], i, 1, n)),
+    evec : apply (matrix, makelist([1.0], i, 1, n)),
+    norm : 1,
+    while ((sum (abs (evec[i,1] - last[i,1]), i, 1, n) > tol) and
+           (abs(norm) > tol)) 
+    do (
+        last : evec,
+        evec : mat . last,
+        norm : sum (abs (evec[i,1]), i, 1, n),
+        if (abs(norm) > tol) then evec : evec/norm),
+    [norm, list_matrix_entries(evec)])$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Let's choose sigmaW = 0.27 and sigmaA = 0.1 (to correspond to Wright-Fisher with n=25).   Then according to the formulae on page 6, we have the following values for sigmaF and Lambda:
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+psubst([sw = 0.27, sa = 0.1], 
+    sqrt(sa*sqrt(4*sw^2+sa^2)-sa^2)/sqrt(2)), numer;
+psubst([sw = 0.27, sa = 0.1], 
+    1/sqrt(%pi*(sa*sqrt(4*sw^2+sa^2) + 2*sw^2 + sa^2))), numer;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Write down the transition matrix for Wright-Fisher dynamics with Gaussian fitness of width 0.27
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tmat: Gfitmat(0.27, 25) . wfmat(25), numer$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Compute the stationary ditribution and the mean fitness.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+block([ans],
+    ans : maxeigen(tmat),
+    mfit : ans[1],
+    sstt : ans[2])$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Have a look at the mean fitness to compare it withthe valuesof Lambda from the formula.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+mfit;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Plot the stationary distribution and compare it with the Gaussian of widtf sigmaF.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+wxplot2d([[discrete, sstt], [discrete, ncgvec(0.15,25)/25]],
+    [legend, "Wright-Fisher", "Gaussian"]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+1/sqrt(4*20), numer;
+psubst([sw = 0.3, sa = 0.11], 
+    sqrt(sa*sqrt(4*sw^2+sa^2)-sa^2)/sqrt(2)), numer;
+psubst([sw = 0.3, sa = 0.11], 
+    1/sqrt(%pi*(sa*sqrt(4*sw^2+sa^2) + 2*sw^2 + sa^2))), numer;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tmat20 : Gfitmat(0.3, 20) . wfmat(20), numer$
+block([ans],
+    ans : maxeigen(tmat20),
+    mfit20 : ans[1],
+    sstt20 : ans[2])$
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+wxplot2d([[discrete, sstt20], [discrete, ncgvec(0.165,20)/20]],
+    [legend, "Wright-Fisher", "Gaussian"]);
+/* [wxMaxima: input   end   ] */
+
+
+
+/* Old versions of Maxima abort on loading files that end in a comment. */
+"Created with wxMaxima 18.02.0"$
